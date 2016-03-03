@@ -16,49 +16,15 @@ predictor.team <- function(y) {
 # 0.3755085
 predictor.team(data)
 
-cross.val.finance <- function(model.function, model.args, data) {
-  # Loop through the last 100 observations as the test set
-  ntrain <- 400
-  ntest <- nrow(data) - ntrain
-  # for training start at the beginning
-  train.pointer <- 1
-  # for testing start at the training offset
-  test.pointer <- ntrain + 1
-  # init a vector of predictions
-  preds <- rep(NA, ntest)
-  actual <- data[test.pointer:(ntrain+ntest),'TARGET']
-  
-  for (test.idx in 1:ntest) {
-    train.data <- data[train.pointer:(ntrain+train.pointer-1),]
-    # train model
-    model.args$data = data
-    model <- do.call(model.function, model.args)
-    
-    # generate one prediction using the test data
-    test.data <- data[test.pointer, setdiff(colnames(data), 'TARGET')]
-    pred <- predict(model, newdata = test.data)
-    if (mode(pred) == 'numeric') {
-      preds[test.idx] <- pred
-    } else if (mode(pred) == 'list') {
-      preds[test.idx] <- pred$pred
-    }
-    train.pointer <- train.pointer + 1
-    # for testing start at the training offset
-    test.pointer <- test.pointer + 1
-  }
-  
-  return(list(mse = mean((preds-actual)**2), preds = preds, actual = actual))
-}
-
 ## examples
 model.function <- 'arima'
-model.args <- list(x = data[,1], order = c(1,0,1))
-res <- cross.val.finance(model.function, model.args)
+model.args <- list(x = data[,1], order = c(1,0,0))
+res <- cross.val.finance(model.function, model.args, data = data)
 print(res$mse)
 
 model.function <- 'lm'
 model.args <- list(formula = 'TARGET ~ .', data = data)
-res <- cross.val.finance(model.function, model.args)
+res <- cross.val.finance(model.function, model.args, data)
 res$mse
 
 nlag <- 1
@@ -75,14 +41,40 @@ lagged <- function(nlag, data) {
 
 data.with.everything.lagged <- lagged(1, data)
 
-head(data.with.target.lagged[,c('TARGET','target.lagged')])
-model.function <- 'lm'
-model.args <- list(formula = 'TARGET ~ target.lagged', data = data.with.target.lagged)
-res <- cross.val.finance(model.function, model.args)
-res$mse
-
 # i can haz more lagz plz
 model.function <- 'lm'
 model.args <- list(formula = 'TARGET ~ .')
 res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
+res$mse
+plot(res$actual, type = 'l', ylim = c(-4,5))
+lines(res$preds, col = 'green')
+# > res$mse
+# [1] 0.6869138
+
+# sanity check
+m <- lm(TARGET ~ ., data = data.with.everything.lagged[1:400,])
+preds <- predict(m, newdata = data.with.everything.lagged[401:499,])
+mean((preds-data.with.everything.lagged[401:499,'TARGET'])**2)
+# [1] 1.066627
+
+lagcols <- colnames(data.with.everything.lagged)[which(sapply(colnames(data.with.everything.lagged), function(colname) {
+  grepl("lags", colname)
+}))]
+
+model.function <- 'lm'
+model.args <- list(formula = paste('TARGET ~', paste(lagcols, collapse = '+')))
+res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
+res$mse
+# > res$mse
+# [1] 1.072224
+
+library(glmnet)
+data.mat <- as.matrix(data)
+x <- data.mat[,setdiff(colnames(data),'TARGET')]
+y <- data.mat[,'TARGET']
+source('crossval.R')
+model.function <- 'glmnet'
+model.args <- list(x = x, y = y, family = 'gaussian', alpha = 0.00)
+
+res <- cross.val.finance(model.function, model.args, data = data, ntrain = 400)
 res$mse
