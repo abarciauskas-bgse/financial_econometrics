@@ -4,7 +4,7 @@ setwd('~/Box Sync/abarciausksas/myfiles/Financial Econometrics/competition/')
 data <- read.csv('forecast-competition-data.csv')
 head(data)
 library(corrplot)
-corrplot(cor(data))
+corrplot(cor(data[2:nrow(data),]))
 colnames(data)
 matplot(data[,11:20], type = 'l')
 
@@ -16,10 +16,10 @@ predictor.team <- function(y) {
 # 0.3755085
 predictor.team(data)
 
-cross.val.finance <- function(model.function, model.args) {
+cross.val.finance <- function(model.function, model.args, data) {
   # Loop through the last 100 observations as the test set
-  ntest <- 100
   ntrain <- 400
+  ntest <- nrow(data) - ntrain
   # for training start at the beginning
   train.pointer <- 1
   # for testing start at the training offset
@@ -31,6 +31,7 @@ cross.val.finance <- function(model.function, model.args) {
   for (test.idx in 1:ntest) {
     train.data <- data[train.pointer:(ntrain+train.pointer-1),]
     # train model
+    model.args$data = data
     model <- do.call(model.function, model.args)
     
     # generate one prediction using the test data
@@ -60,10 +61,28 @@ model.args <- list(formula = 'TARGET ~ .', data = data)
 res <- cross.val.finance(model.function, model.args)
 res$mse
 
-nlags <- 1
-data$target.lagged <- c(rep(NA,nlags),data[nlags:(nrow(data)-nlags),'TARGET'])
-head(data[,c('TARGET','target.lagged')])
+nlag <- 1
+
+lagged <- function(nlag, data) {
+  # target column as is minus nlag rows
+  # lagged columns are target columns
+  target <- data[(nlag+1):nrow(data),]
+  lagged <- data[1:(nrow(data)-nlag),]
+  all.with.lags <- cbind(target, lags = lagged)
+  head(all.with.lags)
+  return(all.with.lags)
+}
+
+data.with.everything.lagged <- lagged(1, data)
+
+head(data.with.target.lagged[,c('TARGET','target.lagged')])
 model.function <- 'lm'
-model.args <- list(formula = 'TARGET ~ target.lagged', data = data)
+model.args <- list(formula = 'TARGET ~ target.lagged', data = data.with.target.lagged)
 res <- cross.val.finance(model.function, model.args)
+res$mse
+
+# i can haz more lagz plz
+model.function <- 'lm'
+model.args <- list(formula = 'TARGET ~ .')
+res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
 res$mse
