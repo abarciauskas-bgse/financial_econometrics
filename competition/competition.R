@@ -29,7 +29,7 @@ cross.val.finance <- function(model.function, model.args) {
   actual <- data[test.pointer:(ntrain+ntest),'TARGET']
   
   for (test.idx in 1:ntest) {
-    train.data <- data[train.pointer:(ntrain+train.pointer),]
+    train.data <- data[train.pointer:(ntrain+train.pointer-1),]
     # train model
     model <- do.call(model.function, model.args)
     
