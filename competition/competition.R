@@ -43,8 +43,9 @@ data.with.everything.lagged <- lagged(1, data)
 
 # i can haz more lagz plz
 model.function <- 'lm'
-model.args <- list(formula = 'TARGET ~ .')
-res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
+df <- data.frame(data.with.everything.lagged)
+model.args <- list(formula = 'TARGET ~ .', data = df)
+res <- cross.val.finance(model.function, model.args, data = df)
 res$mse
 plot(res$actual, type = 'l', ylim = c(-4,5))
 lines(res$preds, col = 'green')

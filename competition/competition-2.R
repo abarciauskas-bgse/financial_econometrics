@@ -1,44 +1,63 @@
-# Base Models
+if (!require('glmnet')) library(glmnet)
 setwd('~/Box Sync/abarciausksas/myfiles/Financial Econometrics/competition/')
-
+source('lagged.R')
+source('crossval.R')
 data <- read.csv('forecast-competition-data.csv')
 
-data.with.everything.lagged <- lagged(1, data)
-
-# i can haz more lagz plz
-model.function <- 'lm'
-model.args <- list(formula = 'TARGET ~ .')
-res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
-res$mse
-plot(res$actual, type = 'l', ylim = c(-4,5))
-lines(res$preds, col = 'green')
-# > res$mse
-# [1] 0.6869138
-
-# sanity check
-m <- lm(TARGET ~ ., data = data.with.everything.lagged[1:400,])
-preds <- predict(m, newdata = data.with.everything.lagged[401:499,])
-mean((preds-data.with.everything.lagged[401:499,'TARGET'])**2)
-# [1] 1.066627
-
-lagcols <- colnames(data.with.everything.lagged)[which(sapply(colnames(data.with.everything.lagged), function(colname) {
-  grepl("lags", colname)
-}))]
-
-model.function <- 'lm'
-model.args <- list(formula = paste('TARGET ~', paste(lagcols, collapse = '+')))
-res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged)
-res$mse
-# > res$mse
-# [1] 1.072224
-
-library(glmnet)
-data.mat <- as.matrix(data)
-x <- data.mat[,setdiff(colnames(data),'TARGET')]
+data.with.everything.lagged <- lagged(3, data)
+data.mat <- as.matrix(data.with.everything.lagged)
+x <- data.mat[,setdiff(colnames(data.with.everything.lagged),'TARGET')]
 y <- data.mat[,'TARGET']
-source('crossval.R')
 model.function <- 'glmnet'
-model.args <- list(x = x, y = y, family = 'gaussian', alpha = 0.00)
+alphas <- seq(0,0.2,0.005)
+mses <- rep(0, length(alphas))
+source('crossval.R')
+for (alpha.idx in 1:length(alphas)) {
+  alpha <- alphas[alpha.idx]
+  model.args <- list(x = x, y = y, family = 'gaussian', alpha = alpha)
+  res <- cross.val.finance(model.function, model.args, data = data.with.everything.lagged, ntrain = 400)
+  mses[alpha.idx] <- res$mse
+}
 
-res <- cross.val.finance(model.function, model.args, data = data, ntrain = 400)
-res$mse
+plot(alphas, mses, type = 'l')
+# 1 lag
+# 0.010 0.6918977
+
+head(cbind(alphas, mses))
+# 1 lag
+# 0.010 0.6918977
+# 3 lags
+# 0.010 0.5289332
+
+# no we try different values of lambda
+data.with.everything.lagged <- lagged(1, data)
+data.mat <- as.matrix(data.with.everything.lagged)
+x <- data.mat[,setdiff(colnames(data.with.everything.lagged),'TARGET')]
+y <- data.mat[,'TARGET']
+model.function <- 'glmnet'
+alpha <- 0.01
+lambdas <- seq(0,1,0.1)
+mses <- rep(0, length(lambdas))
+
+for (lambda.idx in 1:length(lambdas)) {
+  lambda <- lambdas[lambda.idx]
+  model.args <- list(x = x, y = y, family = 'gaussian')
+  res <- cross.val.finance(model.function, model.args,
+                           data = data.with.everything.lagged,
+                           ntrain = 400, lambda = lambda)
+  mses[lambda.idx] <- res$mse
+}
+
+plot(lambdas, mses, type = 'l')
+head(cbind(lambdas, mses))
+# lambdas      mses
+# [1,]     0.0 0.6898902
+# [2,]     0.1 0.8932667
+# [3,]     0.2 1.0059228
+# [4,]     0.3 1.1098562
+# [5,]     0.4 1.1703382
+# [6,]     0.5 1.2497988
+
+# so lambda 0 and alpha 0.01 give us the best results
+cross.val.finance()
+

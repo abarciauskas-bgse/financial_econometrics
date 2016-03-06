@@ -1,4 +1,4 @@
-cross.val.finance <- function(model.function, model.args, data, ntrain = 400) {
+cross.val.finance <- function(model.function, model.args, data, ntrain = 400, lambda = 0) {
   # Loop through the last 100 observations as the test set
   ntrain <- ntrain
   ntest <- nrow(data) - ntrain
@@ -11,18 +11,30 @@ cross.val.finance <- function(model.function, model.args, data, ntrain = 400) {
   actual <- data[test.pointer:(ntrain+ntest),'TARGET']
   
   for (test.idx in 1:ntest) {
-    train.data <- data[train.pointer:(ntrain+train.pointer-1),]
-    # train model
-    model <- do.call(model.function, model.args)
+    model <- NA
+    train.rowset <- train.pointer:(ntrain+train.pointer-1)
+    if (model.function == 'glmnet') {
+      x.train <- as.matrix(data[train.rowset,setdiff(colnames(data),'TARGET')])
+      y.train <- data[train.rowset,'TARGET']
+      model.args['x'] <- list(x.train)
+      model.args['y'] <- NA
+      model.args['y'] <- list(y.train)
+      model <- do.call(model.function, model.args)
+    } else {
+      train.data <- data[train.rowset,]
+      model.args['data'] <- train.data
+      # train model
+      model <- do.call(model.function, model.args)
+    }
     
     # generate one prediction using the test data
     # if using glmnnet do something else
     test.data <- as.matrix(data[test.pointer, setdiff(colnames(data), 'TARGET')])
     pred <- NA
-    if (all(class(mod) == c('elnet','glmnet'))) {
-      pred <- predict(model, newx = as.matrix(test.data), s = 0.01)
+    if (model.function == 'glmnet') {
+      pred <- predict(model, newx = as.matrix(test.data), s = lambda)
     } else {
-      pred <- predict(model, newdata = test.data)
+      pred <- predict(model, newdata = as.data.frame(test.data))
     }
     
     if (mode(pred) == 'numeric') {
