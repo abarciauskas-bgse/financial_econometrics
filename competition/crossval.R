@@ -20,8 +20,8 @@ cross.val.finance <- function(model.function, model.args, data, ntrain = 400) {
     
     # generate one prediction using the test data
     # if using glmnnet do something else
-    test.data <- as.matrix(data[test.pointer, setdiff(colnames(data), 'TARGET')])
-    pred <- predict(model, newdata = as.data.frame(test.data))
+    test.data <- data[test.pointer, setdiff(colnames(data), 'TARGET')]
+    pred <- predict(model, newdata = test.data)
 
     preds[test.idx] <- pred
     train.pointer <- train.pointer + 1
