@@ -24,10 +24,11 @@ lagged <- function(nlag, data) {
 
 predictor.lazyRF <- function(y) {
   # create the lagged data
+  y.last <- y[nrow(y),]
   training.data <- lagged(1, y)
   model <- randomForest(TARGET ~ ., data = training.data)
   # make prediction only for the last period
-  prediction <- predict(model, training.data[nrow(training.data),])
+  prediction <- predict(model, y.last)
   return(prediction)
 }
 
