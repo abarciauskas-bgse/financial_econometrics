@@ -22,9 +22,9 @@ lagged <- function(nlag, data) {
   return(lagged.data)
 }
 
-predictor.oracle <- function(y) {
+predictor.lazyRF <- function(y) {
   # create the lagged data
-  training.data <- lagged(2, y)
+  training.data <- lagged(1, y)
   xreg <- training.data[,setdiff(colnames(training.data), 'TARGET')]
   x <- training.data[,'TARGET']
   model <- randomForest(TARGET ~ ., data = y)
@@ -32,3 +32,6 @@ predictor.oracle <- function(y) {
   prediction <- predict(model, y[1,])
   return(prediction)
 }
+
+# data <- read.csv('forecast-competition-data.csv')
+# predictor.lazyRF(data) # should return a scalar
