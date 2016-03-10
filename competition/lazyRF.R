@@ -25,8 +25,6 @@ lagged <- function(nlag, data) {
 predictor.lazyRF <- function(y) {
   # create the lagged data
   training.data <- lagged(1, y)
-  xreg <- training.data[,setdiff(colnames(training.data), 'TARGET')]
-  x <- training.data[,'TARGET']
   model <- randomForest(TARGET ~ ., data = y)
   # make prediction only for the last period
   prediction <- predict(model, y[1,])
