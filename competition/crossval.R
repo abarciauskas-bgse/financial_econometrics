@@ -1,4 +1,10 @@
-cross.val.finance <- function(model.function, model.args, data, ntrain = 400, lambda = 0) {
+cross.val.finance <- function(
+  model.function,
+  model.args,
+  data,
+  ntrain = 400,
+  lambda = 0,
+  ntree = 100) {
   # Loop through the last 100 observations as the test set
   ntrain <- ntrain
   ntest <- nrow(data) - ntrain
@@ -22,7 +28,7 @@ cross.val.finance <- function(model.function, model.args, data, ntrain = 400, la
       model <- do.call(model.function, model.args)
     } else {
       train.data <- data[train.rowset,]
-      model.args['data'] <- train.data
+      model.args['data'] <- list(train.data)
       # train model
       model <- do.call(model.function, model.args)
     }
@@ -34,7 +40,7 @@ cross.val.finance <- function(model.function, model.args, data, ntrain = 400, la
     if (model.function == 'glmnet') {
       pred <- predict(model, newx = as.matrix(test.data), s = lambda)
     } else {
-      pred <- predict(model, newdata = as.data.frame(test.data))
+      pred <- predict(mod1, newdata = as.data.frame(test.data))
     }
     
     if (mode(pred) == 'numeric') {

@@ -43,7 +43,7 @@ data.with.everything.lagged <- lagged(1, data)
 
 # i can haz more lagz plz
 model.function <- 'lm'
-df <- data.frame(data.with.everything.lagged)
+df <- data.frame(data)
 model.args <- list(formula = 'TARGET ~ .', data = df)
 res <- cross.val.finance(model.function, model.args, data = df)
 res$mse

@@ -4,9 +4,9 @@ source('lagged.R')
 source('crossval.R')
 data <- read.csv('forecast-competition-data.csv')
 
-data.with.everything.lagged <- lagged(3, data)
-data.mat <- as.matrix(data.with.everything.lagged)
-x <- data.mat[,setdiff(colnames(data.with.everything.lagged),'TARGET')]
+# data.with.everything.lagged <- lagged(1, data)
+data.mat <- as.matrix(data)
+x <- data.mat[,setdiff(colnames(data),'TARGET')]
 y <- data.mat[,'TARGET']
 model.function <- 'glmnet'
 alphas <- seq(0,0.2,0.005)
@@ -20,14 +20,11 @@ for (alpha.idx in 1:length(alphas)) {
 }
 
 plot(alphas, mses, type = 'l')
-# 1 lag
-# 0.010 0.6918977
+
 
 head(cbind(alphas, mses))
 # 1 lag
-# 0.010 0.6918977
-# 3 lags
-# 0.010 0.5289332
+
 
 # no we try different values of lambda
 data.with.everything.lagged <- lagged(1, data)
@@ -51,13 +48,11 @@ for (lambda.idx in 1:length(lambdas)) {
 plot(lambdas, mses, type = 'l')
 head(cbind(lambdas, mses))
 # lambdas      mses
-# [1,]     0.0 0.6898902
-# [2,]     0.1 0.8932667
-# [3,]     0.2 1.0059228
-# [4,]     0.3 1.1098562
-# [5,]     0.4 1.1703382
-# [6,]     0.5 1.2497988
 
 # so lambda 0 and alpha 0.01 give us the best results
-cross.val.finance()
 
+if (!require('randomForest')) install.packages('randomForest')
+model.function <- 'randomForest'
+model.args <- list(formula = (TARGET ~ .), data, ntree = 100)
+res <- cross.val.finance(model.function, model.args, data = data)
+res$mse
