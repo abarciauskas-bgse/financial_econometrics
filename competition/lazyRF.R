@@ -27,6 +27,8 @@ predictor.lazyRF <- function(y) {
   y.last <- y[nrow(y),]
   training.data <- lagged(1, y)
   model <- randomForest(TARGET ~ ., data = training.data)
+  y.last <- as.data.frame(y.last)
+  colnames(y.last) <- colnames(training.data[,2:ncol(training.data)])
   # make prediction only for the last period
   prediction <- predict(model, y.last)
   return(prediction)
