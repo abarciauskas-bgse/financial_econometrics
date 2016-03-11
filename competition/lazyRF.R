@@ -30,9 +30,11 @@ predictor.lazyRF <- function(y) {
   y.last <- as.data.frame(y.last)
   colnames(y.last) <- colnames(training.data[,2:ncol(training.data)])
   # make prediction only for the last period
-  prediction <- predict(model, y.last)
+  prediction <- as.numeric(predict(model, y.last))
   return(prediction)
 }
+
+
 
 # data <- read.csv('forecast-competition-data.csv')
 # predictor.lazyRF(data) # should return a scalar
